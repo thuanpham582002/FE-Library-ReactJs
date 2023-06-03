@@ -1,25 +1,33 @@
 import logo from './logo.svg';
 import './App.css';
+import {BookDetailAdmin} from "./components/Book/Detail/BookDetailAdmin";
+import {Route, Routes} from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+import Header from "./components/Header/Header";
+import {Book} from "./components/Book/Book";
+import Login from "./components/Auth/Login";
+import Register from "./components/Auth/Register";
+import Profile from "./components/Profile/Profile";
+import OrderList from "./components/User/OrderList";
+import {BookDetail} from "./components/Book/Detail/BookDetail";
+
+
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    return (<div>
+        <Header></Header>
+        <div className="container">
+            <Routes>
+                <Route path="/" element={<Book/>}></Route>
+                <Route path="/home" element={<Book/>}/>
+                <Route path="/login" element={<Login/>}/>
+                <Route path="/orders" element={<OrderList/>}/>
+                <Route path="/profile" element={<Profile/>}/>
+                <Route path="/register" element={<Register/>}/>
+                <Route path="/:id" element={<BookDetail/>}></Route>
+            </Routes>
+        </div>
+        </div>);
 }
 
 export default App;
