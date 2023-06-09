@@ -68,7 +68,7 @@ export const BookDetailAdmin = () => {
         console.log(id);
         setIsAddMode(id === "-1");
         setIsViewMode(id !== "-1");
-        if (!isViewMode) {
+        if (id !== "-1") {
             const fetchData = async () => {
                 try {
                     const responseBook = await fetchBook(id);
@@ -96,6 +96,10 @@ export const BookDetailAdmin = () => {
             try {
                 const responseGenres = await fetchGenres();
                 setGenres(responseGenres.data);
+                if (id === "-1") {
+                    console.log(responseGenres.data[0].id);
+                    setGenreId(responseGenres.data[0].id);
+                }
             } catch (error) {
                 console.log(error);
             }
@@ -121,10 +125,18 @@ export const BookDetailAdmin = () => {
     };
 
     const handlePageCountChange = (e) => {
-        setNumPages(e.target.value);
+        // Hàm xử lý sự kiện thay đổi giá trị của input
+        const inputNumPages = e.target.value;
+        const numPages = parseInt(inputNumPages);
+
+        if (numPages >= 0) {
+            setNumPages(e.target.value);
+
+        }
     };
 
     const handleGenreChange = (e) => {
+        console.log(e.target.value)
         setGenreId(e.target.value);
     };
 
@@ -171,6 +183,11 @@ export const BookDetailAdmin = () => {
         const book = {
             title, author, description, releaseDate, numPages, genreId, selectedImage
         };
+        const confirmed = window.confirm("Bạn có chắc chắn muốn thêm sách này?");
+        if (!confirmed) {
+            return;
+        }
+
         const postBook = async () => {
             try {
                 await addBook(book);

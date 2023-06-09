@@ -8,9 +8,8 @@ import {Book} from "./components/Book/Book";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
 import Profile from "./components/Profile/Profile";
-import OrderList from "./components/User/OrderList";
 import {BookDetail} from "./components/Book/Detail/BookDetail";
-
+import {OrderHistory} from "./components/User/OrderHistory";
 
 
 function App() {
@@ -21,13 +20,13 @@ function App() {
                 <Route path="/" element={<Book/>}></Route>
                 <Route path="/home" element={<Book/>}/>
                 <Route path="/login" element={<Login/>}/>
-                <Route path="/orders" element={<OrderList/>}/>
                 <Route path="/profile" element={<Profile/>}/>
                 <Route path="/register" element={<Register/>}/>
                 <Route path="/:id" element={<BookDetail/>}></Route>
+                <Route path="/orders" element={<OrderHistory/>}></Route>
             </Routes>
         </div>
-        </div>);
+    </div>);
 }
 
 export default App;

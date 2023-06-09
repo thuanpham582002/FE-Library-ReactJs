@@ -55,8 +55,7 @@ class BookItem extends React.Component {
                 <td>
                     <button
                         className="btn btn-danger"
-                        onClick={() => handleDelete(book.id)}
-                    >
+                        onClick={() => handleDelete(book.id)}>
                         Delete
                     </button>
                 </td>
@@ -112,16 +111,18 @@ export const Book = () => {
     };
 
     const handleDelete = (id) => {
+        const confirmed = window.confirm("Bạn có chắc chắn muốn xóa cuốn sách này?");
+        if (!confirmed) return;
         try {
             const callApi = async () => {
                 await deleteBook(id);
                 setBook(book.filter((item) => item.id !== id));
             }
             callApi().then(r => console.log(r));
+            alert("Xóa thành công!")
         } catch (error) {
             console.log(error);
         }
-
     }
 
     const handleAdd = () => {

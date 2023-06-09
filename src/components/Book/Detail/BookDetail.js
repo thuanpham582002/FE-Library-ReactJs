@@ -7,14 +7,8 @@ import {BookDetailUser} from "./BookDetailUser";
 
 export const BookDetail = () => {
     const user = AuthService.getCurrentUser();
-    const navigate = useNavigate();
-    useEffect(() => {
-        if (!user) {
-            navigate("/login");
-        }
-    });
 
-    if (user.roles.includes("admin")) {
+    if (user && user.roles.includes("admin")) {
         return <BookDetailAdmin/>
     } else {
         return <BookDetailUser/>

@@ -52,9 +52,6 @@ export async function fetchReviewsByUserId(index) {
     return await apiInstance.get('/reviews/user/' + index);
 }
 
-export async function addReview(review) {
-    return await apiInstance.post('/reviews/add', review);
-}
 
 export async function deleteReview(index) {
     return await apiInstance.delete('/reviews/' + index);
@@ -66,6 +63,10 @@ export async function updateReview(index, review) {
 
 export async function fetchOrders() {
     return await apiInstance.get('/orders/');
+}
+
+export async function addReview(index, review) {
+    return await apiInstance.post('/orders/' + index + '/reviews/add', review);
 }
 
 export async function fetchOrdersByUserId(index) {
@@ -81,7 +82,7 @@ export async function addOrder(order) {
 }
 
 export async function deleteOrder(index) {
-    return await apiInstance.delete('/orders/' + index);
+    return await apiInstance.delete('/orders/delete/' + index);
 }
 
 export async function updateOrder(index, order) {

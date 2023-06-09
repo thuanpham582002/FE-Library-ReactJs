@@ -25,13 +25,25 @@ export const BookDetailUser = () => {
     }, [id]);
 
     const handleQuantityChange = (e) => {
-        setQuantity(e.target.value);
+        // Hàm xử lý sự kiện thay đổi giá trị của input
+        const inputQuantity = e.target.value; // Giá trị nhập vào
+        const quantity = parseInt(inputQuantity); // Chuyển đổi giá trị thành số nguyên
+
+        // Kiểm tra số âm và gán giá trị mới cho quantity (nếu không âm)
+        if (quantity >= 0) {
+            setQuantity(quantity); // Gán giá trị mới cho state quantity
+        }
+
     };
 
     const handleBuy = () => {
         if (currentUser) {
+            if (quantity <= 0) {
+                alert('Số lượng phải lớn hơn 0');
+                return;
+            }
             const order = {
-                bookId: id, quantity: quantity, userId: currentUser.id,
+                book: {id: id}, quantity: quantity, user: {id: currentUser.id},
             };
             const callApi = async () => {
                 try {
@@ -56,8 +68,10 @@ export const BookDetailUser = () => {
             callApi().then((r) => console.log(r));
         } else {
             alert('Bạn cần đăng nhập để đặt mua sách');
+            window.location.href = '/login';
         }
     };
+
 
     const formatDate = (releaseDate) => {
         const dateObj = new Date(releaseDate);
@@ -102,21 +116,7 @@ const OrderHistory = ({id, book}) => {
                 const response = await getOrdersByBookId(id);
                 const data = response.data;
                 console.log(data)
-                const orderArray = Object.entries(data).map(([orderKey, review]) => {
-                    const orderMatch = orderKey.match(/Order\(id=(\d+), userId=(\d+), bookId=(\d+), quantity=(\d+)\)/);
-                    const orderId = orderMatch ? parseInt(orderMatch[1]) : null;
-                    const userId = orderMatch ? parseInt(orderMatch[2]) : null;
-                    const bookId = orderMatch ? parseInt(orderMatch[3]) : null;
-                    const quantity = orderMatch ? parseInt(orderMatch[4]) : null;
-
-                    return {
-                        order: {
-                            id: orderId, userId: userId, bookId: bookId, quantity: quantity
-                        }, review: review ? review : null
-                    };
-                });
-                setOrders(orderArray);
-                console.log(orderArray);
+                setOrders(data);
             } catch (error) {
                 console.error(error);
             }
@@ -128,20 +128,20 @@ const OrderHistory = ({id, book}) => {
     const handleAddReview = (orderId, rating, comment) => {
         const newOrders = orders.map((order) => {
             console.log(order);
-            console.log(order.order.id, orderId, order.order.userId, currentUserId);
-            if (order.order.id === orderId && order.order.userId === currentUserId) {
+            console.log(order.id, orderId, currentUserId);
+            if (order.id === orderId && order.user.id === currentUserId) {
                 const callApi = async () => {
                     try {
                         const review = {orderId, rating, comment}
                         console.log(order);
                         console.log(review);
-                        const response = await addReview(review);
+                        const response = await addReview(orderId, review);
                         console.log(response);
                     } catch (error) {
                         console.error(error);
                     }
                 }
-                callApi().then(r => console.log(r));
+                callApi().then(r => console.log(r))
                 return {
                     ...order, review: {
                         rating: rating, comment: comment,
@@ -155,7 +155,7 @@ const OrderHistory = ({id, book}) => {
 
     const handleUpdateReview = (orderId, rating, comment) => {
         const newOrders = orders.map((order) => {
-            if (order.order.id === orderId && order.order.userId === currentUserId) {
+            if (order.id === orderId && order.user.id === currentUserId) {
                 const callApi = async () => {
                     try {
                         const review = {orderId, rating, comment}
@@ -183,7 +183,7 @@ const OrderHistory = ({id, book}) => {
 
     return (<div>
         {orders.map((order) => (<OrderHistoryItem
-            key={order.order.id}
+            key={order.id}
             order={order}
             currentUser={currentUserName}
             handleAddReview={handleAddReview}
@@ -192,20 +192,6 @@ const OrderHistory = ({id, book}) => {
     </div>);
 };
 const OrderHistoryItem = ({order, currentUser, handleAddReview, handleUpdateReview}) => {
-    const [userOrder, setUserOrder] = useState({username: ""});
-
-    useState(() => {
-        const callApi = async () => {
-            try {
-                const response = await getUserById(order.order.userId);
-                setUserOrder(response.data);
-                console.log(response.data);
-            } catch (error) {
-                console.error(error);
-            }
-        }
-        callApi().then(r => console.log(r));
-    });
     const [showReviewForm, setShowReviewForm] = useState(false);
     const handleAddReviewItem = (orderId, rating, comment) => {
         handleAddReview(orderId, rating, comment);
@@ -224,30 +210,28 @@ const OrderHistoryItem = ({order, currentUser, handleAddReview, handleUpdateRevi
         setShowReviewForm(false);
     }
 
-    return (<div key={order.order.id}>
-            <p>Người mua: {userOrder.username}</p>
-            <p>Số lượng: {order.order.quantity}</p>
+    return (<div key={order.id}>
+            <p>Người mua: {order.user.username}</p>
+            <p>Số lượng: {order.quantity}</p>
             {order.review ? (<>
                 <p>Đánh giá: {order.review.rating}/5 sao</p>
                 <p>Nhận xét: {order.review.comment ? order.review.comment : "Người dùng không có nhận xét nào"}</p>
-                {userOrder.username === currentUser ? (<>
+                {order.user.username === currentUser ? (<>
                     {showReviewForm ? (<ReviewForm
                         defaultRating={order.review.rating}
                         defaultComment={order.review.review}
-                        onSubmit={(rating, comment) => handleUpdateReviewItem(order.order.id, rating, comment)}
+                        onSubmit={(rating, comment) => handleUpdateReviewItem(order.id, rating, comment)}
                         onCancel={handleHideReviewForm}
                     />) : (<button onClick={handleShowReviewForm}>Chỉnh sửa đánh giá</button>)}
                 </>) : null}
             </>) : (<>
-                {userOrder.username === currentUser && showReviewForm ? (<ReviewForm
-                    onSubmit={(rating, comment) => handleAddReviewItem(order.order.id, rating, comment)}
+                {order.user.username === currentUser && showReviewForm ? (<ReviewForm
+                    onSubmit={(rating, comment) => handleAddReviewItem(order.id, rating, comment)}
                     onCancel={handleHideReviewForm}
-                />) : (<button onClick={handleShowReviewForm}>Thêm đánh giá</button>)}
+                />) : (order.user.username === currentUser && <button onClick={handleShowReviewForm}>Thêm đánh giá</button>)}
             </>)}
             <hr/>
-        </div>
-
-    );
+        </div>);
 }
 const ReviewForm = ({defaultRating = 5, defaultComment = '', onSubmit, onCancel}) => {
     const [rating, setRating] = useState(defaultRating);

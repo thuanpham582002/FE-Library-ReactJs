@@ -44,11 +44,11 @@ const Header = () => {
                 </Link>
             </li>
 
-            {showAdminBoard && (<li className="nav-item">
-                <Link to={"/admin"} className="nav-link">
-                    Admin Board
-                </Link>
-            </li>)}
+            {/*{showAdminBoard && (<li className="nav-item">*/}
+            {/*    <Link to={"/admin"} className="nav-link">*/}
+            {/*        Admin Board*/}
+            {/*    </Link>*/}
+            {/*</li>)}*/}
 
             {showUserBoard && (<li className="nav-item">
                 <Link to={"/orders"} className="nav-link">
