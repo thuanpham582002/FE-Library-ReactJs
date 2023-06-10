@@ -40,6 +40,10 @@ export async function fetchGenres() {
     return await apiInstance.get('/genres/');
 }
 
+export async function fetchGenre(index) {
+    return await apiInstance.get('/genres/' + index);
+}
+
 export async function fetchAllReviews() {
     return await apiInstance.get('/reviews/');
 }
@@ -85,6 +89,6 @@ export async function deleteOrder(index) {
     return await apiInstance.delete('/orders/delete/' + index);
 }
 
-export async function updateOrder(index, order) {
-    return await apiInstance.post('/orders/' + index, order);
+export async function updateOrder(order) {
+    return await apiInstance.put('/orders/update', order);
 }

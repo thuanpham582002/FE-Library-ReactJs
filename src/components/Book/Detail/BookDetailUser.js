@@ -1,21 +1,34 @@
 import React, {useEffect, useState} from 'react';
 import AuthService from "../../../services/auth.service";
 import {
-    addOrder, addReview, fetchBook, fetchGenres, getOrdersByBookId, getUserById, updateReview
+    addOrder, addReview, fetchBook, fetchGenres, getOrdersByBookId, getUserById, updateOrder, updateReview
 } from "../../../services/apiService";
 import {useParams} from "react-router-dom";
+
+export const ImagePreview = ({uploadedImages, isSmallSize}) => {
+    return (<div className="image-preview">
+        {uploadedImages && uploadedImages.map((image, index) => (image !== "" && <img
+            key={index}
+            src={image}
+            alt={`Hình ảnh ${index + 1}`}
+            className={isSmallSize === false ? "img-fluid" : ""}
+            style={isSmallSize === true ? {width: "200px", height: "200px"} : {}}
+        />))}
+    </div>);
+}
 
 export const BookDetailUser = () => {
     const [quantity, setQuantity] = useState(1);
     const {id} = useParams();
     const currentUser = AuthService.getCurrentUser();
-    const [book, setBook] = useState({});
+    const [book, setBook] = useState({genre: {}});
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const responseBook = await fetchBook(id);
                 setBook(responseBook.data);
+                console.log('book' + responseBook.data.selectedImage.length);
             } catch (error) {
                 console.log(error);
             }
@@ -81,28 +94,37 @@ export const BookDetailUser = () => {
         return `${day}/${month}/${year}`;
     };
 
-    return (<div>
-        {/* Hiển thị thông tin chi tiết sách */}
-        <h2>{book.title}</h2>
-        <p>Tác giả: {book.author}</p>
-        <p>Mô tả: {book.description}</p>
-        <p>Ngày phát hành: {formatDate(book.releaseDate)}</p>
-        <p>Số trang: {book.numPages}</p>
-        <p>Thể loại: {book.genreId}</p>
-        <p>Đã bán: {book.sold}</p>
-        {/* Sử dụng selectedImage để hiển thị hình ảnh sách (nếu có) */}
-        {book.selectedImage && <img src={book.selectedImage} alt="Hình ảnh sách"/>}
-        {/* Form đặt mua sách */}
-        <h3>Đặt mua sách</h3>
-        <label>Số lượng:</label>
-        <input type="number" value={quantity} onChange={handleQuantityChange}/>
-        <button onClick={handleBuy}>Đặt mua</button>
-        {/* Lịch sử đơn hàng */}
-        <h3>Lịch sử đơn hàng</h3>
-        <OrderHistory id={id} book={book}/>
+    return (<div className="card">
+        <div className="card-body">
+            <div className="row">
+                <div className="col-md-4">
+                    {/* Hiển thị bìa sách */}
+                    <ImagePreview uploadedImages={book.selectedImage} isSmallSize={true}/>
+                </div>
+                <div className="col-md-8">
+                    {/* Hiển thị các thông tin sách */}
+                    <h2 className="card-title">{book.title}</h2>
+                    <p className="card-text">Tác giả: {book.author}</p>
+                    <p className="card-text">Mô tả: {book.description === "" ? "Chưa cập nhật" : book.description}</p>
+                    <p className="card-text">Ngày phát hành: {formatDate(book.releaseDate)}</p>
+                    <p className="card-text">Số trang: {book.numPages === 0 ? "Chưa cập nhật" : book.numPages}</p>
+                    <p className="card-text">Thể loại: {book.genre.name}</p>
+                    <p className="card-text">Đã bán: {book.sold}</p>
+                    {/* Form đặt mua sách */}
+                    <h3>Đặt mua sách</h3>
+                    <div className="form-group">
+                        <label>Số lượng:</label>
+                        <input type="number" value={quantity} onChange={handleQuantityChange} className="form-control"/>
+                    </div>
+                    <button onClick={handleBuy} className="btn btn-primary">Đặt mua</button>
+                    {/* Lịch sử đơn hàng */}
+                    <h3>Lịch sử đơn hàng</h3>
+                    <OrderHistory id={id} book={book}/>
+                </div>
+            </div>
+        </div>
     </div>);
 };
-
 
 const OrderHistory = ({id, book}) => {
     const [orders, setOrders] = useState([]);
@@ -125,14 +147,14 @@ const OrderHistory = ({id, book}) => {
         fetchOrderData().then(r => console.log(r));
     }, [id, book]);
 
-    const handleAddReview = (orderId, rating, comment) => {
+    const handleAddReview = (orderId, rating, comment, images) => {
         const newOrders = orders.map((order) => {
             console.log(order);
             console.log(order.id, orderId, currentUserId);
             if (order.id === orderId && order.user.id === currentUserId) {
                 const callApi = async () => {
                     try {
-                        const review = {orderId, rating, comment}
+                        const review = {orderId, rating, comment, images}
                         console.log(order);
                         console.log(review);
                         const response = await addReview(orderId, review);
@@ -144,7 +166,7 @@ const OrderHistory = ({id, book}) => {
                 callApi().then(r => console.log(r))
                 return {
                     ...order, review: {
-                        rating: rating, comment: comment,
+                        rating: rating, comment: comment, images: images
                     },
                 };
             }
@@ -153,15 +175,18 @@ const OrderHistory = ({id, book}) => {
         setOrders(newOrders);
     };
 
-    const handleUpdateReview = (orderId, rating, comment) => {
+    const handleUpdateReview = (orderId, rating, comment, images) => {
         const newOrders = orders.map((order) => {
             if (order.id === orderId && order.user.id === currentUserId) {
                 const callApi = async () => {
                     try {
-                        const review = {orderId, rating, comment}
-                        console.log(order.review.id);
                         console.log(order);
-                        const response = await updateReview(order.review.id, review);
+
+                        const response = await updateOrder({
+                            ...order, review: {
+                                rating: rating, comment: comment, images: images,
+                            }
+                        });
                         console.log(response);
                     } catch (error) {
                         console.error(error);
@@ -171,7 +196,7 @@ const OrderHistory = ({id, book}) => {
 
                 return {
                     ...order, review: {
-                        rating: rating, comment: comment,
+                        rating: rating, comment: comment, images: images
                     },
                 };
             }
@@ -193,13 +218,17 @@ const OrderHistory = ({id, book}) => {
 };
 const OrderHistoryItem = ({order, currentUser, handleAddReview, handleUpdateReview}) => {
     const [showReviewForm, setShowReviewForm] = useState(false);
-    const handleAddReviewItem = (orderId, rating, comment) => {
-        handleAddReview(orderId, rating, comment);
+
+    useEffect(() => {
+        console.log(order);
+    })
+    const handleAddReviewItem = (orderId, rating, comment, images) => {
+        handleAddReview(orderId, rating, comment, images);
         handleHideReviewForm();
     }
 
-    const handleUpdateReviewItem = (orderId, rating, comment) => {
-        handleUpdateReview(orderId, rating, comment);
+    const handleUpdateReviewItem = (orderId, rating, comment, images) => {
+        handleUpdateReview(orderId, rating, comment, images);
         handleHideReviewForm();
     }
     const handleShowReviewForm = () => {
@@ -210,32 +239,37 @@ const OrderHistoryItem = ({order, currentUser, handleAddReview, handleUpdateRevi
         setShowReviewForm(false);
     }
 
-    return (<div key={order.id}>
-            <p>Người mua: {order.user.username}</p>
-            <p>Số lượng: {order.quantity}</p>
-            {order.review ? (<>
-                <p>Đánh giá: {order.review.rating}/5 sao</p>
-                <p>Nhận xét: {order.review.comment ? order.review.comment : "Người dùng không có nhận xét nào"}</p>
-                {order.user.username === currentUser ? (<>
-                    {showReviewForm ? (<ReviewForm
-                        defaultRating={order.review.rating}
-                        defaultComment={order.review.review}
-                        onSubmit={(rating, comment) => handleUpdateReviewItem(order.id, rating, comment)}
-                        onCancel={handleHideReviewForm}
-                    />) : (<button onClick={handleShowReviewForm}>Chỉnh sửa đánh giá</button>)}
-                </>) : null}
-            </>) : (<>
-                {order.user.username === currentUser && showReviewForm ? (<ReviewForm
-                    onSubmit={(rating, comment) => handleAddReviewItem(order.id, rating, comment)}
+    return (<div key={order.id} className="order-item">
+        <p>Người mua: {order.user.username}</p>
+        <p>Số lượng: {order.quantity}</p>
+        {order.review ? (<>
+            <p>Đánh giá: {order.review.rating}/5 sao</p>
+            <p>Nhận xét: {order.review.comment ? order.review.comment : "Người dùng không có nhận xét nào"}</p>
+            <ImagePreview uploadedImages={order.review.images} isSmallSize={true}/>
+            {order.user.username === currentUser ? (<>
+                {showReviewForm ? (<ReviewForm
+                    defaultRating={order.review.rating}
+                    defaultComment={order.review.comment}
+                    onSubmit={(rating, comment, images) => handleUpdateReviewItem(order.id, rating, comment, images)}
                     onCancel={handleHideReviewForm}
-                />) : (order.user.username === currentUser && <button onClick={handleShowReviewForm}>Thêm đánh giá</button>)}
-            </>)}
-            <hr/>
-        </div>);
+                />) : (<button onClick={handleShowReviewForm} className="btn btn-primary">Chỉnh sửa đánh
+                    giá</button>)}
+            </>) : null}
+        </>) : (<>
+            {order.user.username === currentUser ? showReviewForm ? (<ReviewForm
+                    onSubmit={(rating, comment, images) => handleAddReviewItem(order.id, rating, comment, images)}
+                    onCancel={handleHideReviewForm}
+                />) : (order.user.username === currentUser &&
+                    <button onClick={handleShowReviewForm} className="btn btn-primary">Thêm đánh giá</button>) :
+                <p>Người dùng chưa đánh giá</p>}
+        </>)}
+        <hr/>
+    </div>);
 }
 const ReviewForm = ({defaultRating = 5, defaultComment = '', onSubmit, onCancel}) => {
     const [rating, setRating] = useState(defaultRating);
     const [comment, setComment] = useState(defaultComment);
+    const [uploadedImages, setUploadedImages] = useState([]);
 
     const handleRatingChange = (newRating) => {
         setRating(newRating);
@@ -246,24 +280,91 @@ const ReviewForm = ({defaultRating = 5, defaultComment = '', onSubmit, onCancel}
     };
 
     const handleSubmit = () => {
-        onSubmit(rating, comment);
+        onSubmit(rating, comment, uploadedImages);
     };
 
     return (<div>
-        <StarRating rating={rating} onRatingChange={handleRatingChange}/>
-        <textarea value={comment} onChange={handleCommentChange}></textarea>
-        <button onClick={handleSubmit}>Đăng nhận xét</button>
-        <button onClick={onCancel}>Hủy</button>
+        <div className="form-group">
+            <StarRating rating={rating} onRatingChange={handleRatingChange}
+                        onImageUpload={(images) => setUploadedImages(images)}/>
+        </div>
+        <div className="form-group">
+            <ImageUpload onImageUpload={(images) => setUploadedImages(images)}/>
+        </div>
+        <div className="form-group">
+            <label>Nhận xét:</label>
+            <textarea value={comment} onChange={handleCommentChange} className="form-control"/>
+        </div>
+        <button onClick={handleSubmit} className="btn btn-primary">Đăng nhận xét</button>
+        <button onClick={onCancel} className="btn btn-secondary">Hủy</button>
     </div>);
 };
 
-const StarRating = ({rating, onRatingChange}) => {
-    const handleClick = (newRating) => {
+const ImageUpload = ({onImageUpload}) => {
+    const [uploadedImages, setUploadedImages] = useState([]);
+    const handleImageUpload = (images) => {
+        setUploadedImages(images);
+    };
+
+    const handleImageUploadChange = (event) => {
+        const files = event.target.files;
+        const _updatedImages = [];
+
+        // Kiểm tra số lượng tệp đã chọn và giới hạn là 5 tệp
+        if (files.length > 5) {
+            alert("Bạn chỉ có thể chọn tối đa 5 ảnh.");
+            event.target.value = null; // Đặt giá trị của input file về null để xóa các tệp đã chọn
+            return;
+        }
+
+        // Lặp qua từng tệp được chọn
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const reader = new FileReader();
+
+            // Đọc tệp và chuyển đổi thành base64
+            reader.onload = () => {
+                const base64Image = reader.result;
+                _updatedImages.push(base64Image);
+
+                // Kiểm tra nếu đã chọn đủ số lượng tệp tối đa
+                if (_updatedImages.length === files.length) {
+                    handleImageUpload(_updatedImages);
+                    onImageUpload(_updatedImages);
+                }
+            };
+
+            // Đọc tệp dưới dạng base64
+            reader.readAsDataURL(file);
+        }
+
+    };
+    return (<div>
+        <div className="form-group">
+            <label htmlFor="images">Hình ảnh:</label>
+            <input
+                type="file"
+                id="images"
+                name="images"
+                accept="image/*"
+                multiple
+                onChange={handleImageUploadChange}
+                className="form-control"
+            />
+        </div>
+
+        <ImagePreview uploadedImages={uploadedImages} isSmallSize={true}/>
+
+    </div>)
+}
+const StarRating = ({rating, onRatingChange, onImageUpload}) => {
+    const handleRatingChange = (newRating) => {
         onRatingChange(newRating);
     };
 
+
     return (<div>
-        <p>Đánh giá:</p>
+        <label>Đánh giá:</label>
         <div className="rating">
             <input
                 type="radio"
@@ -271,7 +372,7 @@ const StarRating = ({rating, onRatingChange}) => {
                 name="rating"
                 value="5"
                 checked={rating === 5}
-                onChange={() => handleClick(5)}
+                onChange={() => handleRatingChange(5)}
             />
             <label htmlFor="star5">5 sao</label>
 
@@ -281,7 +382,7 @@ const StarRating = ({rating, onRatingChange}) => {
                 name="rating"
                 value="4"
                 checked={rating === 4}
-                onChange={() => handleClick(4)}
+                onChange={() => handleRatingChange(4)}
             />
             <label htmlFor="star4">4 sao</label>
 
@@ -291,7 +392,7 @@ const StarRating = ({rating, onRatingChange}) => {
                 name="rating"
                 value="3"
                 checked={rating === 3}
-                onChange={() => handleClick(3)}
+                onChange={() => handleRatingChange(3)}
             />
             <label htmlFor="star3">3 sao</label>
 
@@ -301,7 +402,7 @@ const StarRating = ({rating, onRatingChange}) => {
                 name="rating"
                 value="2"
                 checked={rating === 2}
-                onChange={() => handleClick(2)}
+                onChange={() => handleRatingChange(2)}
             />
             <label htmlFor="star2">2 sao</label>
 
@@ -311,9 +412,10 @@ const StarRating = ({rating, onRatingChange}) => {
                 name="rating"
                 value="1"
                 checked={rating === 1}
-                onChange={() => handleClick(1)}
+                onChange={() => handleRatingChange(1)}
             />
             <label htmlFor="star1">1 sao</label>
         </div>
+
     </div>);
 };

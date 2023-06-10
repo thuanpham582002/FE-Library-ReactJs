@@ -1,15 +1,15 @@
 import React, {useEffect, useState} from "react";
-import {useParams, useNavigate} from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import {addBook, fetchBook, fetchGenres, updateBook} from "../../../services/apiService";
 import "./BookDetail.css";
-import AuthService from "../../../services/auth.service";
-import BookDetailUser from "./BookDetailUser";
+import {ImagePreview} from "./BookDetailUser";
 
 class GenreItem extends React.Component {
     render() {
         const {genre} = this.props;
+        console.log({genre});  // {... }
 
-        return (<option value={genre.id}>{genre.name}</option>);
+        return (<option value={JSON.stringify(genre)}>{genre.name}</option>);
     }
 }
 
@@ -52,8 +52,8 @@ export const BookDetailAdmin = () => {
     const [description, setDescription] = useState("");
     const [releaseDate, setReleaseDate] = useState("");
     const [numPages, setNumPages] = useState("");
-    const [genreId, setGenreId] = useState("");
-    const [selectedImage, setSelectedImage] = useState(null);
+    const [genre, setGenre] = useState({});
+    const [selectedImage, setSelectedImage] = useState([]);
     const [genres, setGenres] = useState([]);
     const [sold, setSold] = useState("");
     const [isAddMode, setIsAddMode] = useState(false);
@@ -73,7 +73,7 @@ export const BookDetailAdmin = () => {
                 try {
                     const responseBook = await fetchBook(id);
                     const {
-                        title, author, description, releaseDate, numPages, genreId, selectedImage, sold
+                        title, author, description, releaseDate, numPages, genre, selectedImage, sold
                     } = responseBook.data;
                     setTitle(title);
                     setAuthor(author);
@@ -81,11 +81,9 @@ export const BookDetailAdmin = () => {
                     const formattedDate = new Date(releaseDate).toISOString().split("T")[0];
                     setReleaseDate(formattedDate);
                     setNumPages(numPages);
-                    setGenreId(genreId);
+                    setGenre(genre);
                     setSelectedImage(selectedImage);
                     setSold(sold)
-                    const responseGenres = await fetchGenres();
-                    setGenres(responseGenres.data);
                 } catch (error) {
                     console.log(error);
                 }
@@ -97,8 +95,8 @@ export const BookDetailAdmin = () => {
                 const responseGenres = await fetchGenres();
                 setGenres(responseGenres.data);
                 if (id === "-1") {
-                    console.log(responseGenres.data[0].id);
-                    setGenreId(responseGenres.data[0].id);
+                    console.log(responseGenres.data[0]);
+                    setGenre(responseGenres.data[0]);
                 }
             } catch (error) {
                 console.log(error);
@@ -136,20 +134,42 @@ export const BookDetailAdmin = () => {
     };
 
     const handleGenreChange = (e) => {
-        console.log(e.target.value)
-        setGenreId(e.target.value);
+        const selectedGenre = JSON.parse(e.target.value);
+        console.log(selectedGenre);
+        setGenre(selectedGenre);
     };
 
-    const toBase64 = file => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-    });
+    const handleImageUploadChange = (event) => {
+        const files = event.target.files;
+        const _updatedImages = [];
 
-    const handleImageUpload = async (e) => {
-        const file = e.target.files[0];
-        setSelectedImage(await toBase64(file));
+        // Kiểm tra số lượng tệp đã chọn và giới hạn là 5 tệp
+        if (files.length > 5) {
+            alert("Bạn chỉ có thể chọn tối đa 5 ảnh.");
+            event.target.value = null; // Đặt giá trị của input file về null để xóa các tệp đã chọn
+            return;
+        }
+
+        // Lặp qua từng tệp được chọn
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const reader = new FileReader();
+
+            // Đọc tệp và chuyển đổi thành base64
+            reader.onload = () => {
+                const base64Image = reader.result;
+                _updatedImages.push(base64Image);
+
+                // Kiểm tra nếu đã chọn đủ số lượng tệp tối đa
+                if (_updatedImages.length === files.length) {
+                    setSelectedImage(_updatedImages);
+                }
+            };
+
+            // Đọc tệp dưới dạng base64
+            reader.readAsDataURL(file);
+        }
+
     };
 
     const handleValidate = () => {
@@ -181,7 +201,7 @@ export const BookDetailAdmin = () => {
             return;
         }
         const book = {
-            title, author, description, releaseDate, numPages, genreId, selectedImage
+            title, author, description, releaseDate, numPages, genre, selectedImage
         };
         const confirmed = window.confirm("Bạn có chắc chắn muốn thêm sách này?");
         if (!confirmed) {
@@ -212,8 +232,9 @@ export const BookDetailAdmin = () => {
             return;
         }
         const book = {
-            title, author, description, releaseDate, numPages, genreId, selectedImage, sold
+            title, author, description, releaseDate, numPages, genre, selectedImage, sold
         };
+        console.log(book);
         const callApi = async () => {
             try {
                 await updateBook(id, book);
@@ -277,23 +298,23 @@ export const BookDetailAdmin = () => {
             <div className="form-group">
                 <label>Thể loại:</label>
 
-                <select value={genreId} onChange={handleGenreChange} className="form-control" disabled={isViewMode}>
+                <select value={JSON.stringify(genre)} onChange={handleGenreChange} className="form-control"
+                        disabled={isViewMode}>
                     {genres.map(genre => <GenreItem genre={genre}/>)}
                 </select>
             </div>
         </div>
         <div className="col-md-6">
             <div className="form-group text-center">
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="form-control"
+                <input type="file" accept="image/*" multiple onChange={handleImageUploadChange} className="form-control"
                        disabled={isViewMode}
                        style={{display: 'none'}} id="file-upload-input"/>
                 <button onClick={() => document.getElementById('file-upload-input').click()}
                         className="btn btn-primary">Upload
                 </button>
             </div>
-            {selectedImage && (<div>
-                <img src={selectedImage} alt="Selected" className="img-fluid"/>
-            </div>)}
+
+            {selectedImage && (<ImagePreview uploadedImages={selectedImage} isSmallSize={false}/>)}
         </div>
         <Footer isAddMode={isAddMode} isViewMode={isViewMode} isEditMode={isEditMode} handleSave={handleAdd}
                 handleEdit={() => {

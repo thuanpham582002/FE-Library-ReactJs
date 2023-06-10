@@ -41,7 +41,7 @@ class BookItem extends React.Component {
             return (<tr key={book.id}>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
-                <td>{book.genre}</td>
+                <td>{book.genre.name}</td>
                 <td>{this.formattedDate(book.releaseDate)}</td>
                 <td>{book.numPages}</td>
                 <td>{book.sold}</td>
@@ -63,7 +63,7 @@ class BookItem extends React.Component {
         } else {
             return (<tr key={book.id}>
                 <td>
-                    <img src={book.selectedImage} alt="Book Cover" style={{width: '200px', height: '300px'}}/>
+                    <img src={book.selectedImage[0]} alt="Book Cover" style={{width: '200px', height: '300px'}}/>
                 </td>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
