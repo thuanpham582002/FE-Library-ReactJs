@@ -297,8 +297,8 @@ export const BookDetailAdmin = () => {
             </div>
             <div className="form-group">
                 <label>Thể loại:</label>
-
-                <select value={JSON.stringify(genre)} onChange={handleGenreChange} className="form-control"
+                <span className="caret"></span>
+                <select value={JSON.stringify(genre)} onChange={handleGenreChange} className="caret"
                         disabled={isViewMode}>
                     {genres.map(genre => <GenreItem genre={genre}/>)}
                 </select>
